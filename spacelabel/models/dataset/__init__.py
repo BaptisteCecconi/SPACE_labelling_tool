@@ -19,13 +19,14 @@ from pandas import DataFrame
 from tfcat.validate import validate_file
 from tqdm import trange
 
-
 from spacelabel.models.feature import Feature
 
 if TYPE_CHECKING:
     from spacelabel.presenters import Presenter
 
 log = logging.getLogger(__name__)
+
+SCHEMA_URI = "https://voparis-ns.obspm.fr/maser/tfcat/v1.0/tfcat-v1.0-rc2.json"
 
 
 class DataSet(ABC):
@@ -351,26 +352,20 @@ class DataSet(ABC):
         with open(self._file_path.with_suffix('.json'), 'w') as file_json:
             json.dump(
                 {
+                    "§schema": SCHEMA_URI,
                     "type": "FeatureCollection",
                     "features": [
                         feature.to_tfcat_dict(bbox=bbox) for feature in self._features
                     ],
                     "crs": {
-                        "type": "Cartesian",
-                        "name": "Time-Frequency",
+                        "type": "local",
                         "properties": {
-                            "type": "Cartesian",
-                            "name": "Time-Frequency",
-                            "time_coords": {
-                                "id": "unix",  "name":  "Timestamp (Unix Time)", "unit": "s",
-                                "time_origin": "1970-01-01T00:00:00.000Z",
-                                "time_scale": "TT"
-                            },
+                            "time_coords_id": "unix",
                             "spectral_coords": {
-                                "name": "Frequency",
+                                "type": "frequency",
                                 "unit": self._units['Frequency']
                             },
-                            "ref_position": {"id": self._observer}
+                            "ref_position_id": self._observer
                         }
                     }
                 },
@@ -392,7 +387,7 @@ class DataSet(ABC):
             log.info(
                 f"load_features_from_json: Loading '{self._file_path.with_suffix('.json')}'"
             )
-            validate_file(path_tfcat)
+            validate_file(path_tfcat, SCHEMA_URI)
 
             with open(path_tfcat, 'r') as file_json:
                 try:
