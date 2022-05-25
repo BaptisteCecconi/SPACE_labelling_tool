@@ -352,7 +352,7 @@ class DataSet(ABC):
         with open(self._file_path.with_suffix('.json'), 'w') as file_json:
             json.dump(
                 {
-                    "§schema": SCHEMA_URI,
+                    "$schema": SCHEMA_URI,
                     "type": "FeatureCollection",
                     "features": [
                         feature.to_tfcat_dict(bbox=bbox) for feature in self._features
