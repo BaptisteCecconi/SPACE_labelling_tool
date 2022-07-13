@@ -166,6 +166,9 @@ class DataSetCDF(DataSet):
             measurements: List[ndarray] = []
             for cdf_path in cdf_paths:
                 file = CDF(str(cdf_path))
+                print(f'File: {cdf_path}')
+                print(f'len(Epoch): {len(file[self._config["time"]])}')
+                print(f'len({measurement_config["value"]}): {len(file[measurement_config["value"]])}')
                 measurements.append(file[measurement_config['value']])
 
             # The data is not background-subtracted. Background varies per frequency bin.
