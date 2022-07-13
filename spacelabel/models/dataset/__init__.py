@@ -145,6 +145,8 @@ class DataSet(ABC):
                     ), dtype=float
                 )
 
+                print(len(self._time))
+                print(measurement_original.shape)
                 for i in trange(len(self._time)):
                     measurement_new[i, :] = numpy.interp(
                         x=freq_rescaled,
@@ -320,7 +322,6 @@ class DataSet(ABC):
         """
         return self._time[0], self._time[-1]
 
-
     def get_frequency_range(self) -> Tuple[float, float]:
         """
         Returns the min and max of the frequency range
@@ -341,9 +342,8 @@ class DataSet(ABC):
         """
         with open(self._file_path.with_suffix('.txt'), 'w') as file_text:
             for feature in self._features:
-                file_text.write(f'{feature.to_text_summary()}\n')
+                file_text.write(f'{feature.to_text_summary}\n')
 
-    
     def write_features_to_json(self):
         """
         Writes the details of the bounds of each feature, to a TFCat-format JSON file.
@@ -366,6 +366,13 @@ class DataSet(ABC):
                                 "unit": self._units['Frequency']
                             },
                             "ref_position_id": self._observer
+                        }
+                    },
+                    "fields": {
+                        "feature_type": {
+                            "info": "Feature Type",
+                            "ucd": "meta.code",
+                            "datatype": "str"
                         }
                     }
                 },

@@ -1,0 +1,11 @@
+{
+  "type": "local",
+  "properties": {
+    "time_coords_id": "unix",
+    "spectral_coords": {
+      "type": "frequency",
+      "unit": "kHz"
+    },
+    "ref_position_id": ""
+  }
+}

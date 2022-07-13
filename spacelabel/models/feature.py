@@ -5,7 +5,11 @@ import numpy
 from astropy.time import Time
 from numpy import ndarray
 from shapely.geometry import LinearRing
-from shapely.geometry import Polygon,box
+from shapely.geometry import Polygon, box
+from tfcat import Feature as TFCatFeature
+from tfcat import Polygon as TFCatPolygon
+from tfcat import MultiLineString as TFCatMultiLineString
+from spacelabel.models.crs import CRS
 
 from typing import List, Tuple, Optional
 
@@ -44,20 +48,26 @@ class Feature:
         if log_level:
             log.setLevel(log_level)
 
-    def crop(self,bbox:Tuple):
+    @property
+    def _coordinates(self):
+        coordinates = self.vertexes(unix_time=True)
+        # TFcat format is counter-clockwise, so invert if our co-ordinates are not
+        if not LinearRing(coordinates).is_ccw:
+            coordinates = coordinates[::-1]
+        return coordinates
+
+    def crop(self, bbox: Tuple):
         """
         Crops the feature to have the vertexes inside the plotting window
         """
-        coordinates = [
-            (time.unix, freq) for time, freq in zip(self._time, self._freq)
-        ]
-        polygon = Polygon(coordinates)
-        polygon = polygon.intersection(box(bbox[0].unix,bbox[1],bbox[2].unix,bbox[3]))
 
-        self._time = Time(polygon.exterior.xy[0],format="unix")
-        self._freq = polygon.exterior.xy[1]
+        polygon = Polygon(self._coordinates)
+        polygon = polygon.intersection(box(bbox[0].unix, bbox[1], bbox[2].unix, bbox[3]))
 
+        self._time = CRS.time_converter(polygon.exterior.xy[0])
+        self._freq = numpy.array(polygon.exterior.xy[1])
 
+    @property
     def to_text_summary(self) -> str:
         """
         Writes a summary of the feature's extent to text.
@@ -66,39 +76,37 @@ class Feature:
         """
         return f"{self._name}, {min(self._time)}, {max(self._time)}, {min(self._freq)}, {max(self._freq)}"
 
-    def to_tfcat_dict(self, bbox=None) -> dict:
-        """
-        Expresses the polygon in the form of a dictionary containing a TFCat feature.
+    def tfcat_feature(self, bbox=None) -> TFCatFeature:
+        """TFCat Feature instance of current event.
 
-        :return: A dictionary. Times are returned as Unix time, not calendar time
+        :return: A TFCat Feature object. Times are returned as Unix time, not calendar time
         """
 
         if bbox is not None:
             self.crop(bbox)
 
-        coordinates = [
-            (time.unix, freq) for time, freq in zip(self._time, self._freq)
-        ]
+        # check if polygon is closed:
+        if self._coordinates[0] == self._coordinates[-1]:
+            geometry = TFCatPolygon
+        else:
+            geometry = TFCatMultiLineString
 
-       
-
-        # TFcat format is counter-clockwise, so invert if our co-ordinates are not
-        if not LinearRing(coordinates).is_ccw:
-            coordinates = coordinates[::-1]
-
-        return {
-            "type": "Feature",
-            "id": self._id,
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [
-                    coordinates
-                ]
-            },
-            "properties": {
+        return TFCatFeature(
+            geometry=geometry([self._coordinates]),
+            id=self._id,
+            properties={
                 "feature_type": self._name
             }
-        }
+        )
+
+    def to_tfcat_dict(self, bbox=None) -> dict:
+        """
+        Expresses the polygon in the form of a dictionary containing a TFCat feature.
+
+        :return: A TFCat. Times are returned as Unix time, not calendar time
+        """
+
+        return self.tfcat_feature(bbox=bbox)
 
     def is_in_time_range(self, time_start: Time, time_end: Time) -> bool:
         """
@@ -110,14 +118,18 @@ class Feature:
         """
         return (time_start <= self._time.min() <= time_end) or (time_start <= self._time.max() <= time_end)
 
-    def vertexes(self) -> List[Tuple[Time, float]]:
+    def vertexes(self, unix_time=False) -> List[Tuple[Time, float]]:
         """
         Returns the vertexes of the polygon as a list of tuples of time-frequency points.
 
         :return: List of vertexes as (time, frequency)
         """
+        if unix_time:
+            time_converter = lambda x: float(x.unix)
+        else:
+            time_converter = lambda x: x
         return [
-            (time, freq) for time, freq in zip(self._time, self._freq)
+            (time_converter(time), freq) for time, freq in zip(self._time, self._freq)
         ]
 
     def arrays(self) -> Tuple[Time, ndarray]:

@@ -18,6 +18,6 @@ setup(
         'scipy',
         'astropy',
         'h5py',
-        'tfcat @ git+https://gitlab.obspm.fr/maser/catalogues/tfcat.git@b99296190e4ac047ef01fdb3e5deabb1e5651443'
+        'tfcat @ git+https://gitlab.obspm.fr/maser/catalogues/tfcat.git@v0.4.0'
     ]
 )
