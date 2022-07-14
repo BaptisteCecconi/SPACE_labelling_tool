@@ -300,6 +300,13 @@
       }
     }
   ],
+  "fields": {
+    "feature_type": {
+      "info": "Type of feature",
+      "ucd": "meta.id",
+      "datatype": "str"
+    }
+  },
   "crs": {
     "type": "local",
     "properties": {
@@ -308,7 +315,7 @@
         "type": "frequency",
         "unit": "kHz"
       },
-      "ref_position_id": "Cassini-orbiter"
+      "ref_position_id": "cassini-orbiter"
     }
   }
 }
